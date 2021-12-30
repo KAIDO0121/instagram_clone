@@ -1,0 +1,6 @@
+flask
+flask_mongoengine
+flask_restful
+typing
+datetime
+flask-jwt-extended
