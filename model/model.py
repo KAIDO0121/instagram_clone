@@ -22,14 +22,14 @@ class Photo(db.Document):
     #   user use the path to download photo from file storage B
 
 class UserPhoto(db.Document):
-    user_id = db.ObjectIdField(primary_key= True, unique=True)
+    user_id = db.ObjectIdField(primary_key= True)
     photo_ids = db.ListField()
 
 class Follow(db.Document):
-    follow_by_user_id = db.ObjectIdField(primary_key= True)
-    follow_to_user_id = db.ObjectIdField(primary_key= True)
+    is_following = db.ObjectIdField()
+    user_id = db.ObjectIdField()
 
 class UserFollow(db.Document):
-    user_id = db.ObjectIdField(primary_key= True, unique=True)
-    follow_by_user_ids = db.ListField()
-    follow_to_user_ids = db.ListField()
+    user_id = db.ObjectIdField(primary_key= True)
+    is_followed_by_ids = db.ListField()
+    following_ids = db.ListField()
