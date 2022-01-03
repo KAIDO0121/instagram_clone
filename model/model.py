@@ -10,16 +10,6 @@ class User(db.Document):
 
 class Photo(db.Document):
     creation_date = db.DateTimeField(default=datetime.utcnow)
-    photo_path = db.StringField()
-
-    # because upload photo would be slow, so we are separating it from downloading and searching photos 
-    # for upload:
-    #   user writing photo path to db A
-    #   user upload photo to file storage B 
-
-    # for download( view ):
-    #   user query photo path from db A
-    #   user use the path to download photo from file storage B
 
 class UserPhoto(db.Document):
     user_id = db.ObjectIdField(primary_key= True)
