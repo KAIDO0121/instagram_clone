@@ -2,8 +2,11 @@ from flask import Flask
 from flask_mongoengine import MongoEngine
 from flask_restful import Api
 from flask_jwt_extended import JWTManager
-
+from google.cloud import storage
+import os
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/Users/liaoyushun/Desktop/credentials/instagram-clone-337113-d40a109cb7f5.json"
 db = MongoEngine()
+storage_client = storage.Client()
 
 
 def create_app():
@@ -17,9 +20,14 @@ def create_app():
     db.init_app(app)
     api = Api(app)
     app.config["JWT_SECRET_KEY"] = "super-secret"
+
     jwt = JWTManager(app)
     from endpoint.user import Register, FollowUser, GetUserFollows, Login
     from endpoint.photo import UploadPhoto
+    from endpoint.newsfeedservice import NewsFeed
+
+    news_feed = NewsFeed()
+    news_feed.generate_feed()
     api.add_resource(Login, '/api/login')
     api.add_resource(Register, '/api/register')
     api.add_resource(FollowUser, '/api/followuser')

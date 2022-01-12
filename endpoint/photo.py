@@ -1,13 +1,13 @@
 from flask_restful import Resource
 from flask import request, jsonify, make_response
 from model.model import Photo, UserPhoto
-from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, create_refresh_token
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from werkzeug.utils import secure_filename
-from upload_manager import UploadManager
+from app import storage_client
 
 # upload photo
 
-ALLOWED_EXTENSIONS = set(['png', 'jpeg', 'svg', 'jpg'])
+ALLOWED_EXTENSIONS = set(['png', 'jpeg', 'gif', 'jpg'])
 
 
 def allowed_file(filename):
@@ -19,47 +19,44 @@ class UploadPhoto(Resource):
     @classmethod
     @jwt_required()
     def post(cls):
-        upload = UploadManager()
         user_id = get_jwt_identity()
-        photo = Photo().save()
 
-        m = photo.to_mongo().to_dict()
+        photo_to_upload = request.files['file']
 
-        user_photo = UserPhoto.objects(
-            user_id=user_id
-        ).update_one(
-            push__photo_ids=str(m.get('_id')),
-            upsert=True
-        )
-
-        # No file selected
         if 'file' not in request.files:
-            return make_response({"msg": f' *** No files Selected'}, 401)
+            resp = jsonify({'message': 'No file part in the request'})
+            resp.status_code = 400
+            return resp
+        if photo_to_upload.filename == '':
+            resp = jsonify({'message': 'No file selected for uploading'})
+            resp.status_code = 400
+            return resp
 
-        file_to_upload = request.files['file']
-        content_type = request.mimetype
+        if photo_to_upload and allowed_file(photo_to_upload.filename):
+            photo = Photo(photo_name=photo_to_upload.filename).save()
+            m = photo.to_mongo().to_dict()
+            user_photo = UserPhoto.objects(
+                user_id=user_id
+            ).update_one(
+                push__photo_ids=str(m.get('_id')),
+                push__photo_names=photo_to_upload.filename,
+                upsert=True
+            )
+            filename = secure_filename(photo_to_upload.filename)
+            bucket = storage_client.bucket('instagram-clone-photos')
+            blob = bucket.blob(filename)
+            blob.chunk_size = 1024 * 1024
+            blob.upload_from_file(photo_to_upload)
 
-        # if empty files
-        if file_to_upload.filename == '':
-            return make_response({"msg": f' *** File name must not be empty'}, 401)
-
-        # file uploaded and check
-        if file_to_upload and allowed_file(file_to_upload.filename):
-
-            file_name = secure_filename(file_to_upload.filename)
-
-            print(f" *** The file name to upload is {file_name}")
-            print(f" *** The file full path  is {file_to_upload}")
-
-            bucket_name = "instagram-clone-photos"
-
-            upload.s3_upload_small_files(
-                file_to_upload, bucket_name, file_name, content_type)
-            return make_response({"msg": f'Success - {file_to_upload} Is uploaded to {bucket_name}', "user_photo": user_photo}, 200)
+            resp = jsonify({'message': f'{ filename } successfully uploaded'})
+            resp.status_code = 201
 
         else:
-            return make_response({"msg": f'Allowed file type are - jpeg - jpg - png - svg .Please upload proper formats...'}, 200)
+            resp = jsonify(
+                {'message': 'Allowed file types are png, jpg, jpeg, gif'})
+            resp.status_code = 400
 
+        return resp
 
 # get photo by user id
 

@@ -4,4 +4,3 @@ flask_restful
 typing
 datetime
 flask-jwt-extended
-boto3
