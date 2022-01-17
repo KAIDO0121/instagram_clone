@@ -59,7 +59,7 @@ class Register(Resource):
             identity=str(m.get('_id')), fresh=True)
         refresh_token = create_refresh_token(str(m.get('_id')))
 
-        RECENT_VISITED_USERS.put("user_id", str(m.get('_id')))
+        RECENT_VISITED_USERS.put(user_json['name'], str(m.get('_id')))
         # added this line just for development
         return make_response({"access_token": access_token, "refresh_token": refresh_token, "user": user}, 201)
 
@@ -74,7 +74,7 @@ class Login(Resource):
             access_token = create_access_token(
                 identity=str(m.get('_id')), fresh=True)
             refresh_token = create_refresh_token(str(m.get('_id')))
-            RECENT_VISITED_USERS.put("user_id", str(m.get('_id')))
+            RECENT_VISITED_USERS.put(user_json['name'], str(m.get('_id')))
             return {"access_token": access_token, "refresh_token": refresh_token, "errorCode": 0}, 200
         if not user:
             return {"message": "User name not found", "errorCode": 2}, 200

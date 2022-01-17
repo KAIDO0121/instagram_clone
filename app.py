@@ -24,15 +24,16 @@ def create_app():
     jwt = JWTManager(app)
     from endpoint.user import Register, FollowUser, GetUserFollows, Login
     from endpoint.photo import UploadPhoto
-    from endpoint.newsfeedservice import NewsFeed
+    from endpoint.newsfeedservice import NewsFeedGenerator, GetNewsFeedByUserId
 
-    news_feed = NewsFeed()
+    news_feed = NewsFeedGenerator()
     news_feed.generate_feed()
     api.add_resource(Login, '/api/login')
     api.add_resource(Register, '/api/register')
-    api.add_resource(FollowUser, '/api/followuser')
-    api.add_resource(GetUserFollows, '/api/getuserfollows')
+    api.add_resource(FollowUser, '/api/follow_user')
+    api.add_resource(GetUserFollows, '/api/get_user_follows')
     api.add_resource(UploadPhoto, '/api/upload_photo')
+    api.add_resource(GetNewsFeedByUserId, '/api/get_news_feed_by_user_id')
 
     return app
 

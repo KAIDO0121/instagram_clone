@@ -35,6 +35,7 @@ class LRUCache:
         return self.cache.items()
 
 
-RECENT_VISITED_USERS = LRUCache(10)
+RECENT_VISITED_USERS = LRUCache(2)
 
-RECENT_VISITED_USERS.put("id", "61def09021a06bc2bc1b3d6a")
+RECENT_VISITED_USERS.put("test01", "61def09021a06bc2bc1b3d6a")  # test id
+RECENT_VISITED_USERS.put("test06", "61e5897028689ec2399fd1de")

@@ -1,5 +1,5 @@
 from flask_restful import Resource
-from flask import request, jsonify, make_response
+from flask import request, jsonify
 from model.model import Photo, UserPhoto
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from werkzeug.utils import secure_filename

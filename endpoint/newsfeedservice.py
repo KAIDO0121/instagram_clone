@@ -1,15 +1,20 @@
 from caches.recent_visit_users import RECENT_VISITED_USERS
 from model.model import UserFollow, UserPhoto
 from app import storage_client
+import base64
 import threading
+from flask_restful import Resource
+from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask import make_response, jsonify
+
+NEWS_FEED_CACHE = {}
 
 
-class NewsFeed:
+class NewsFeedGenerator:
 
     def __init__(self) -> None:
         self.recent_visited_users = RECENT_VISITED_USERS
-        self.active_user_followings = []
-        self.most_recent_photos = []
+        self.active_user_followings = {}
 
     def generate_feed(self):
         def cb():
@@ -27,35 +32,48 @@ class NewsFeed:
         return t
 
     def get_all_followings(self) -> list:
-        # {}
-        all_follows = []
+
         for _, active_id in RECENT_VISITED_USERS.get_dict():
-            print(type(UserFollow.objects(user_id=active_id).first().following_ids))
-            all_follows.append(
-                {active_id: UserFollow.objects(user_id=active_id).first().following_ids})
-        self.active_user_followings = all_follows
+            self.active_user_followings[active_id] = UserFollow.objects(
+                user_id=active_id).first().following_ids
 
     def get_following_photos(self):
-        following_photos = []
-        # generate photo of followings per active user
 
-        for following_relationship in self.active_user_followings:
+        for active_user_id, is_followings in self.active_user_followings.items():
 
+            following_photos = []
             user_photo_names = []
 
-            # for k, v in following_relationship.items():
-            # a = UserPhoto.objects(user_id=v)
-            # print(v)
-            # user_photo_names.append(*a)
+            for is_following in is_followings:
+                a = getattr(UserPhoto.objects(
+                    user_id=is_following
+                ).first(), 'photo_names', None)
+                if a:
+                    user_photo_names.append(*a)
 
             for user_photo_name in user_photo_names:
-                bucket = storage_client.bucket('instagram-clone-photos')
-                blob = bucket.blob(user_photo_name)
-                contents = blob.download_as_string()
-                following_photos.append(contents)
+                if user_photo_name:
+                    bucket = storage_client.bucket('instagram-clone-photos')
+                    blob = bucket.blob(user_photo_name)
+                    # sort with blob.updated
+                    contents = blob.download_as_bytes()
+                    img = "data:image/png;base64, " + \
+                        base64.b64encode(contents).decode('ascii')
+                    following_photos.append(img)
+                else:
+                    following_photos.append(None)
 
-        print(following_photos)
+            NEWS_FEED_CACHE[active_user_id] = following_photos
 
+
+class GetNewsFeedByUserId(Resource):
+
+    @classmethod
+    @jwt_required()
+    def get(self):
+        user_id = get_jwt_identity()
+        print(RECENT_VISITED_USERS.get_dict())
+        return make_response(jsonify(NEWS_FEED_CACHE.get(user_id)), 201)
 
 # given a time interval
 #   get recent active users
